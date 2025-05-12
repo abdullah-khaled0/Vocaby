@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocaby</title>
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Vocaby</h1>
+      <div class="header-actions">
+        <p>Master English with Arabic translations</p>
+        <button id="settingsBtn" aria-label="Open settings">
+          <span class="icon">⚙️</span>
+        </button>
+      </div>
+    </header>
+    <section class="notification-message" id="notificationMessage" aria-live="polite">
+      <div id="notificationContent"></div>
+      <button id="closeNotificationBtn" class="hidden" aria-label="Close notification">✕</button>
+    </section>
+    <section class="search-section">
+      <input type="text" id="searchInput" placeholder="Search vocabulary..." aria-label="Search vocabulary">
+    </section>
+    <section class="chat-section" aria-live="polite">
+      <div class="chat-container" id="chatContainer">
+        <div id="vocabGroups"></div>
+      </div>
+    </section>
+    <section class="input-section">
+      <input type="text" id="wordInput" placeholder="Add a new word" aria-label="New word input">
+      <button id="generateBtn" aria-label="Generate phrase and translation">
+        <span class="icon">➤</span>
+      </button>
+    </section>
+    <section class="quiz-section">
+      <select id="quizGroupSelect" aria-label="Select group for quiz">
+        <option value="">Select a group for quiz</option>
+      </select>
+      <button id="startQuizBtn" aria-label="Start quiz">Quiz</button>
+    </section>
+    <div id="loading" class="loading hidden" aria-hidden="true">
+      <div class="spinner"></div>
+      <span>Generating...</span>
+    </div>
+    <div id="quizModal" class="modal hidden">
+      <div class="modal-content">
+        <h2>Vocaby Quiz</h2>
+        <p id="quizScore" class="quiz-score">Score: 0/0</p>
+        <p id="quizQuestion"></p>
+        <input type="text" id="quizAnswer" placeholder="Your answer" aria-label="Quiz answer input">
+        <div class="modal-buttons">
+          <button id="submitQuizBtn" aria-label="Submit quiz answer">Submit</button>
+          <button id="nextQuizBtn" class="hidden" aria-label="Next quiz question">Next</button>
+          <button id="closeQuizBtn" aria-label="Close quiz">Close</button>
+        </div>
+        <p id="quizFeedback"></p>
+      </div>
+    </div>
+    <div id="settingsModal" class="modal hidden">
+      <div class="modal-content">
+        <h2>Vocaby Settings</h2>
+        <label for="apiKeyInput">Gemini API Key:</label>
+        <input type="text" id="apiKeyInput" placeholder="Enter your API key" aria-label="Gemini API key">
+        <label for="notificationPeriod">Notification Period:</label>
+        <select id="notificationPeriod" aria-label="Select notification period">
+          <option value="3600000">1 hour</option>
+          <option value="7200000">2 hours</option>
+          <option value="14400000">4 hours</option>
+          <option value="28800000">8 hours</option>
+        </select>
+        <label for="notificationsEnabled">
+          <input type="checkbox" id="notificationsEnabled" aria-label="Enable notifications">
+          Enable Notifications
+        </label>
+        <div class="modal-buttons">
+          <button id="testNotificationBtn" aria-label="Test notification">Test Notification</button>
+          <button id="saveSettingsBtn" aria-label="Save settings">Save</button>
+          <button id="closeSettingsBtn" aria-label="Close settings">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

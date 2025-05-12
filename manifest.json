@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Vocaby",
+  "version": "1.0",
+  "description": "A Chrome extension to build vocabulary with English phrases and Arabic translations",
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "notifications"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "128": "icon.png"
+  }
+}
