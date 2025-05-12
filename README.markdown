@@ -17,7 +17,7 @@ Vocaby is a Chrome extension that helps you build your English vocabulary with c
 1. **Clone or Download**:
 
    ```bash
-   git clone https://github.com/your-username/vocaby.git
+   git clone https://github.com/abdullah-khaled0/Vocaby.git
    ```
 
    Or download the ZIP file from GitHub and extract it.
@@ -136,6 +136,8 @@ Vocaby is a Chrome extension that helps you build your English vocabulary with c
   - `popup.css`: Styling.
   - `popup.js`: Popup logic.
   - `icon.png`: 128x128 PNG for icon and notifications.
+  - `content.js`
+  - `utils.js`
 - **Dependencies**:
   - Gemini API key for phrase generation.
 - **Permissions**:
