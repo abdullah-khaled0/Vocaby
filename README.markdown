@@ -1,5 +1,7 @@
 # Vocaby Chrome Extension
 
+![Project Banner](https://www.socialstudies.com/wp-content/uploads/The-Importance-of-Vocabulary-Instruction-in-Social-Studies-0L.jpg)
+
 Vocaby is a Chrome extension that helps you build your English vocabulary with clear, memorable phrases, Arabic translations, and interactive quizzes. Powered by the Gemini API, Vocaby is perfect for English learners, especially Arabic speakers, offering a seamless way to learn and retain new words. Features include context menu integration, periodic notifications, and a clean, accessible interface.
 
 ## Features
