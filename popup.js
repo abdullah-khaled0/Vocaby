@@ -69,17 +69,36 @@ document.addEventListener('DOMContentLoaded', () => {
       return acc;
     }, {});
 
-    Object.keys(groupedVocab).sort().reverse().forEach(date => {
+    // Sort dates in ascending order (oldest to newest)
+    Object.keys(groupedVocab).sort().forEach(date => {
       const groupDiv = document.createElement('div');
       groupDiv.className = 'group';
       groupDiv.dataset.date = date;
+      
+      // Add isToday class if the group is from today
+      const isToday = date === new Date().toISOString().split('T')[0];
+      if (isToday) {
+        groupDiv.classList.add('today');
+      }
+      
       groupDiv.innerHTML = `
-        <div class="group-header" data-date="${date}">
-          <span>${new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-          <button class="delete-btn" data-date="${date}">Delete</button>
+        <div class="group-header ${isToday ? 'today' : ''}" data-date="${date}">
+          <div class="group-header-content">
+            <span class="group-date">${new Date(date).toLocaleDateString('en-US', { 
+              weekday: 'short', 
+              month: 'short', 
+              day: 'numeric',
+              year: new Date(date).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+            })}</span>
+            ${isToday ? '<span class="today-badge">Today</span>' : ''}
+          </div>
+          <button class="delete-btn" data-date="${date}" title="Delete group">
+            <span class="delete-icon">×</span>
+          </button>
         </div>
         <ul class="chat-messages"></ul>
       `;
+      
       const messagesUl = groupDiv.querySelector('.chat-messages');
       groupedVocab[date].forEach(({ word, phrase, arabic, explanation }) => {
         appendMessage('user', word, messagesUl);
@@ -89,24 +108,45 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       vocabGroups.appendChild(groupDiv);
 
-      // Toggle group visibility
+      // Toggle group visibility with animation
       const header = groupDiv.querySelector('.group-header');
-      header.addEventListener('click', (e) => {
-        if (e.target.className !== 'delete-btn') {
-          messagesUl.classList.toggle('hidden');
+      const toggleGroup = (e) => {
+        if (e.target.closest('.delete-btn')) return;
+        
+        messagesUl.style.height = messagesUl.scrollHeight + 'px';
+        if (messagesUl.classList.contains('hidden')) {
+          messagesUl.classList.remove('hidden');
+          requestAnimationFrame(() => {
+            messagesUl.style.height = messagesUl.scrollHeight + 'px';
+          });
+        } else {
+          messagesUl.style.height = '0';
+          messagesUl.addEventListener('transitionend', () => {
+            if (messagesUl.style.height === '0px') {
+              messagesUl.classList.add('hidden');
+            }
+          }, { once: true });
         }
-      });
+      };
+      
+      header.addEventListener('click', toggleGroup);
 
       // Add delete button listener
       const deleteBtn = groupDiv.querySelector('.delete-btn');
       deleteBtn.addEventListener('click', () => {
-        chrome.storage.local.get(['vocab'], (data) => {
-          const updatedVocab = (data.vocab || []).filter(item => item.date !== date);
-          chrome.storage.local.set({ vocab: updatedVocab }, () => {
-            loadVocab();
-            updateQuizGroupOptions();
+        if (confirm('Are you sure you want to delete this group?')) {
+          chrome.storage.local.get(['vocab'], (data) => {
+            const updatedVocab = (data.vocab || []).filter(item => item.date !== date);
+            chrome.storage.local.set({ vocab: updatedVocab }, () => {
+              groupDiv.style.opacity = '0';
+              groupDiv.style.transform = 'translateX(-20px)';
+              setTimeout(() => {
+                loadVocab();
+                updateQuizGroupOptions();
+              }, 300);
+            });
           });
-        });
+        }
       });
     });
 
