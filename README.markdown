@@ -1,4 +1,4 @@
-# Vocaby Chrome Extension
+# Vocaby Chrome Extension using Cursor
 
 ![Project Banner](https://www.socialstudies.com/wp-content/uploads/The-Importance-of-Vocabulary-Instruction-in-Social-Studies-0L.jpg)
 
