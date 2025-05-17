@@ -18,66 +18,83 @@
         </button>
       </div>
     </header>
-    <section class="notification-message" id="notificationMessage" aria-live="polite">
-      <div id="notificationContent"></div>
-      <button id="closeNotificationBtn" class="hidden" aria-label="Close notification">✕</button>
-    </section>
-    <section class="search-section">
-      <input type="text" id="searchInput" placeholder="Search vocabulary..." aria-label="Search vocabulary">
-    </section>
-    <section class="chat-section" aria-live="polite">
-      <div class="chat-container" id="chatContainer">
-        <div id="vocabGroups"></div>
+
+    <div class="tab-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active" data-tab="phrases">Phrases</button>
+        <button class="tab-btn" data-tab="translations">Translations</button>
       </div>
-    </section>
-    <section class="input-section">
-      <input type="text" id="wordInput" placeholder="Add a new word" aria-label="New word input">
-      <button id="generateBtn" aria-label="Generate phrase and translation">
-        <span class="icon">➤</span>
-      </button>
-    </section>
+
+      <div class="tab-content active" id="phrasesTab">
+        <section class="search-section">
+          <input type="text" id="searchInput" placeholder="Search vocabulary..." aria-label="Search vocabulary">
+        </section>
+        <section class="chat-section" aria-live="polite">
+          <div class="chat-container" id="chatContainer">
+            <div id="vocabGroups"></div>
+          </div>
+        </section>
+        <section class="input-section">
+          <input type="text" id="wordInput" placeholder="Add a new word" aria-label="New word input">
+          <button id="generateBtn" aria-label="Generate phrase and translation">
+            <span class="icon">➤</span>
+          </button>
+        </section>
+      </div>
+
+      <div class="tab-content" id="translationsTab">
+        <section class="search-section">
+          <input type="text" id="translationSearchInput" placeholder="Search translations..." aria-label="Search translations">
+        </section>
+        <section class="translations-section">
+          <div class="translations-container" id="translationsContainer"></div>
+        </section>
+      </div>
+    </div>
+
     <section class="quiz-section">
       <select id="quizGroupSelect" aria-label="Select group for quiz">
         <option value="">Select a group for quiz</option>
       </select>
       <button id="startQuizBtn" aria-label="Start quiz">Quiz</button>
     </section>
+
     <div id="loading" class="loading hidden" aria-hidden="true">
       <div class="spinner"></div>
       <span>Generating...</span>
     </div>
+
     <div id="quizModal" class="modal hidden">
-      <div class="modal-content">
+      <div class="modal-content quiz-modal-content">
         <h2>Vocaby Quiz</h2>
         <p id="quizScore" class="quiz-score">Score: 0/0</p>
-        <p id="quizQuestion"></p>
-        <input type="text" id="quizAnswer" placeholder="Your answer" aria-label="Quiz answer input">
+        <div class="quiz-content">
+          <p id="quizQuestion"></p>
+          <div class="quiz-options" id="quizOptions"></div>
+          <p id="quizFeedback"></p>
+        </div>
         <div class="modal-buttons">
           <button id="submitQuizBtn" aria-label="Submit quiz answer">Submit</button>
           <button id="nextQuizBtn" class="hidden" aria-label="Next quiz question">Next</button>
           <button id="closeQuizBtn" aria-label="Close quiz">Close</button>
         </div>
-        <p id="quizFeedback"></p>
       </div>
     </div>
+
     <div id="settingsModal" class="modal hidden">
       <div class="modal-content">
         <h2>Vocaby Settings</h2>
-        <label for="apiKeyInput">Gemini API Key:</label>
-        <input type="text" id="apiKeyInput" placeholder="Enter your API key" aria-label="Gemini API key">
-        <label for="notificationPeriod">Notification Period:</label>
-        <select id="notificationPeriod" aria-label="Select notification period">
-          <option value="3600000">1 hour</option>
-          <option value="7200000">2 hours</option>
-          <option value="14400000">4 hours</option>
-          <option value="28800000">8 hours</option>
-        </select>
-        <label for="notificationsEnabled">
-          <input type="checkbox" id="notificationsEnabled" aria-label="Enable notifications">
-          Enable Notifications
-        </label>
+        <div class="api-key-section">
+          <label for="apiKeyInput">Gemini API Key:</label>
+          <div class="api-key-input-group">
+            <input type="password" id="apiKeyInput" placeholder="Enter your API key" aria-label="Gemini API key">
+            <button id="toggleApiKey" aria-label="Toggle API key visibility">
+              <span class="icon">👁️</span>
+            </button>
+          </div>
+          <p class="api-key-help">Get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a></p>
+        </div>
         <div class="modal-buttons">
-          <button id="testNotificationBtn" aria-label="Test notification">Test Notification</button>
           <button id="saveSettingsBtn" aria-label="Save settings">Save</button>
           <button id="closeSettingsBtn" aria-label="Close settings">Close</button>
         </div>

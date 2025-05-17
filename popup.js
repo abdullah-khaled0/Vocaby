@@ -18,14 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsBtn = document.getElementById('settingsBtn');
   const settingsModal = document.getElementById('settingsModal');
   const apiKeyInput = document.getElementById('apiKeyInput');
-  const notificationPeriod = document.getElementById('notificationPeriod');
-  const notificationsEnabled = document.getElementById('notificationsEnabled');
-  const testNotificationBtn = document.getElementById('testNotificationBtn');
+  const toggleApiKey = document.getElementById('toggleApiKey');
   const saveSettingsBtn = document.getElementById('saveSettingsBtn');
   const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-  const notificationMessage = document.getElementById('notificationMessage');
-  const notificationContent = document.getElementById('notificationContent');
-  const closeNotificationBtn = document.getElementById('closeNotificationBtn');
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  const translationsContainer = document.getElementById('translationsContainer');
+  const translationSearchInput = document.getElementById('translationSearchInput');
+  const quizOptions = document.getElementById('quizOptions');
 
   let vocabData = [];
   let quizWords = [];
@@ -45,10 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load settings
   function loadSettings() {
     chrome.storage.local.get(['settings'], (data) => {
-      const settings = data.settings || { apiKey: '', notificationPeriod: 3600000, notificationsEnabled: false };
+      const settings = data.settings || { apiKey: '' };
       apiKeyInput.value = settings.apiKey;
-      notificationPeriod.value = settings.notificationPeriod;
-      notificationsEnabled.checked = settings.notificationsEnabled;
     });
   }
 
@@ -69,13 +67,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return acc;
     }, {});
 
-    // Sort dates in ascending order (oldest to newest)
     Object.keys(groupedVocab).sort().forEach(date => {
       const groupDiv = document.createElement('div');
       groupDiv.className = 'group';
       groupDiv.dataset.date = date;
       
-      // Add isToday class if the group is from today
       const isToday = date === new Date().toISOString().split('T')[0];
       if (isToday) {
         groupDiv.classList.add('today');
@@ -113,20 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const toggleGroup = (e) => {
         if (e.target.closest('.delete-btn')) return;
         
-        messagesUl.style.height = messagesUl.scrollHeight + 'px';
-        if (messagesUl.classList.contains('hidden')) {
-          messagesUl.classList.remove('hidden');
-          requestAnimationFrame(() => {
-            messagesUl.style.height = messagesUl.scrollHeight + 'px';
-          });
-        } else {
-          messagesUl.style.height = '0';
-          messagesUl.addEventListener('transitionend', () => {
-            if (messagesUl.style.height === '0px') {
-              messagesUl.classList.add('hidden');
-            }
-          }, { once: true });
-        }
+        messagesUl.style.height = messagesUl.classList.contains('expanded') ? '0' : `${messagesUl.scrollHeight}px`;
+        messagesUl.classList.toggle('expanded');
       };
       
       header.addEventListener('click', toggleGroup);
@@ -236,30 +220,42 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Reset quiz state
     currentQuizIndex = 0;
     quizScoreCorrect = 0;
     quizScoreTotal = 0;
-    quizScore.textContent = `Score: ${quizScoreCorrect}/${quizScoreTotal}`;
-    startQuizQuestion();
+    quizScore.textContent = `Score: 0/0`;
+    quizFeedback.textContent = '';
+    quizOptions.innerHTML = '';
+    
+    // Show quiz modal and start first question
     quizModal.classList.remove('hidden');
+    startQuizQuestion();
   });
 
   function startQuizQuestion() {
     if (currentQuizIndex >= quizWords.length) {
       quizQuestion.textContent = 'Quiz completed!';
-      quizAnswer.classList.add('hidden');
+      quizOptions.innerHTML = '';
       submitQuizBtn.classList.add('hidden');
       nextQuizBtn.classList.add('hidden');
       quizFeedback.textContent = `Final Score: ${quizScoreCorrect}/${quizScoreTotal}`;
       return;
     }
 
+    // Reset button states
+    submitQuizBtn.disabled = false;
+    submitQuizBtn.classList.remove('btn-loading', 'hidden');
+    nextQuizBtn.classList.add('hidden');
+    nextQuizBtn.disabled = false;
+    nextQuizBtn.classList.remove('btn-loading');
+
     const vocab = quizWords[currentQuizIndex];
     chrome.runtime.sendMessage({ action: 'generateQuizQuestion', vocab }, (response) => {
       if (response.error) {
         quizQuestion.textContent = 'Error generating quiz question.';
         quizFeedback.textContent = response.error;
-        quizAnswer.classList.add('hidden');
+        quizOptions.innerHTML = '';
         submitQuizBtn.classList.add('hidden');
         nextQuizBtn.classList.add('hidden');
         return;
@@ -267,54 +263,107 @@ document.addEventListener('DOMContentLoaded', () => {
 
       currentQuestion = response.question;
       currentCorrectAnswer = response.answer;
-      quizQuestion.textContent = currentQuestion;
-      quizAnswer.value = '';
-      quizAnswer.classList.remove('hidden');
-      quizAnswer.classList.remove('close');
+
+      // Clear previous state
+      quizOptions.innerHTML = '';
       quizFeedback.textContent = '';
-      submitQuizBtn.classList.remove('hidden');
-      nextQuizBtn.classList.add('hidden');
+
+      // Create and append options
+      response.options.forEach((option, index) => {
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'quiz-option';
+        optionDiv.dataset.value = option;
+        optionDiv.innerHTML = `
+          <div class="quiz-option-radio"></div>
+          <span class="quiz-option-text">${option}</span>
+        `;
+        
+        // Add click handler
+        optionDiv.addEventListener('click', () => {
+          // Remove selection from other options
+          quizOptions.querySelectorAll('.quiz-option').forEach(opt => {
+            opt.classList.remove('selected');
+          });
+          // Select this option
+          optionDiv.classList.add('selected');
+          // Enable submit button if disabled
+          submitQuizBtn.disabled = false;
+        });
+        
+        quizOptions.appendChild(optionDiv);
+      });
+
+      // Update question display
+      quizQuestion.textContent = currentQuestion;
     });
   }
 
   submitQuizBtn.addEventListener('click', () => {
-    const userAnswer = quizAnswer.value.trim();
-    if (!userAnswer) {
-      quizFeedback.textContent = 'Please enter an answer.';
+    const selectedOption = quizOptions.querySelector('.quiz-option.selected');
+    if (!selectedOption) {
+      quizFeedback.textContent = 'Please select an answer.';
       return;
     }
 
+    // Add loading state
+    submitQuizBtn.classList.add('btn-loading');
+    submitQuizBtn.disabled = true;
+
+    const userAnswer = selectedOption.dataset.value;
     quizScoreTotal++;
+
     chrome.runtime.sendMessage({
       action: 'correctQuizAnswer',
       question: currentQuestion,
       userAnswer,
       correctAnswer: currentCorrectAnswer
     }, (response) => {
+      // Remove loading state
+      submitQuizBtn.classList.remove('btn-loading');
+      submitQuizBtn.disabled = false;
+
       if (response.error) {
         quizFeedback.textContent = response.error;
         return;
       }
 
+      // Mark correct and incorrect options
+      quizOptions.querySelectorAll('.quiz-option').forEach(option => {
+        const optionValue = option.dataset.value;
+        if (optionValue === currentCorrectAnswer) {
+          option.classList.add('correct');
+        } else if (option === selectedOption && !response.correct) {
+          option.classList.add('incorrect');
+        }
+        // Disable all options after submission
+        option.style.pointerEvents = 'none';
+      });
+
       if (response.correct) {
         quizScoreCorrect++;
-        quizFeedback.textContent = response.feedback;
-      } else if (response.close) {
-        quizAnswer.classList.add('close');
-        quizFeedback.textContent = response.feedback;
-      } else {
-        quizFeedback.textContent = response.feedback;
       }
-
+      
+      quizFeedback.textContent = response.feedback;
       quizScore.textContent = `Score: ${quizScoreCorrect}/${quizScoreTotal}`;
       submitQuizBtn.classList.add('hidden');
       nextQuizBtn.classList.remove('hidden');
+      nextQuizBtn.focus(); // Auto-focus the next button
     });
   });
 
   nextQuizBtn.addEventListener('click', () => {
+    // Add loading state
+    nextQuizBtn.classList.add('btn-loading');
+    nextQuizBtn.disabled = true;
+
     currentQuizIndex++;
     startQuizQuestion();
+
+    // Remove loading state after a short delay
+    setTimeout(() => {
+      nextQuizBtn.classList.remove('btn-loading');
+      nextQuizBtn.disabled = false;
+    }, 300);
   });
 
   closeQuizBtn.addEventListener('click', () => {
@@ -328,31 +377,49 @@ document.addEventListener('DOMContentLoaded', () => {
   // Settings functionality
   settingsBtn.addEventListener('click', () => {
     settingsModal.classList.remove('hidden');
+    apiKeyInput.focus(); // Auto-focus the API key input
   });
 
-  testNotificationBtn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ action: 'testNotification' }, (response) => {
-      if (response.error) {
-        appendMessage('bot', `Error: ${response.error}`, null);
-      } else {
-        appendMessage('bot', 'Test notification triggered. Check your notifications.', null);
-      }
-      scrollToBottom();
-    });
+  // Toggle API key visibility
+  toggleApiKey.addEventListener('click', () => {
+    const type = apiKeyInput.type === 'password' ? 'text' : 'password';
+    apiKeyInput.type = type;
+    toggleApiKey.querySelector('.icon').textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
   });
 
+  // Save settings
   saveSettingsBtn.addEventListener('click', () => {
+    // Add loading state
+    saveSettingsBtn.classList.add('btn-loading');
+    saveSettingsBtn.disabled = true;
+    closeSettingsBtn.disabled = true;
+
     const settings = {
-      apiKey: apiKeyInput.value.trim(),
-      notificationPeriod: parseInt(notificationPeriod.value, 10),
-      notificationsEnabled: notificationsEnabled.checked
+      apiKey: apiKeyInput.value.trim()
     };
+
     chrome.storage.local.set({ settings }, () => {
       chrome.runtime.sendMessage({ action: 'updateSettings', settings }, (response) => {
+        // Remove loading state
+        saveSettingsBtn.classList.remove('btn-loading');
+        saveSettingsBtn.disabled = false;
+        closeSettingsBtn.disabled = false;
+
         if (response.success) {
-          settingsModal.classList.add('hidden');
-          appendMessage('bot', 'Settings saved successfully.', null);
-          scrollToBottom();
+          // Show success message
+          const successMsg = document.createElement('div');
+          successMsg.className = 'settings-success';
+          successMsg.textContent = 'Settings saved successfully!';
+          
+          // Insert success message before the buttons
+          const modalButtons = settingsModal.querySelector('.modal-buttons');
+          modalButtons.parentNode.insertBefore(successMsg, modalButtons);
+
+          // Auto-hide success message and close modal
+          setTimeout(() => {
+            successMsg.remove();
+            settingsModal.classList.add('hidden');
+          }, 1500);
         }
       });
     });
@@ -362,34 +429,29 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsModal.classList.add('hidden');
   });
 
-  // Notification message handling
-  function showNotificationMessage(message) {
-    notificationContent.textContent = message;
-    notificationMessage.classList.add('visible');
-    closeNotificationBtn.classList.remove('hidden');
-  }
-
-  closeNotificationBtn.addEventListener('click', () => {
-    notificationMessage.classList.remove('visible');
-    closeNotificationBtn.classList.add('hidden');
-    notificationContent.textContent = '';
-  });
-
-  // Handle notification click message
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'openPopupWithNotification') {
-      chrome.runtime.sendMessage({ action: 'getLastNotificationMessage' }, (response) => {
-        if (response.message) {
-          showNotificationMessage(response.message);
-        }
-      });
+  // Add keyboard navigation for settings
+  apiKeyInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !saveSettingsBtn.disabled) {
+      saveSettingsBtn.click();
     }
   });
 
-  // Check for notification message on load
-  chrome.runtime.sendMessage({ action: 'getLastNotificationMessage' }, (response) => {
-    if (response.message) {
-      showNotificationMessage(response.message);
+  // Close settings modal with Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !settingsModal.classList.contains('hidden')) {
+      closeSettingsBtn.click();
+    }
+  });
+
+  // Prevent closing modal when clicking inside
+  settingsModal.querySelector('.modal-content').addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  // Close modal when clicking outside
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+      closeSettingsBtn.click();
     }
   });
 
@@ -400,15 +462,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  quizAnswer.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      submitQuizBtn.click();
-    }
-  });
-
-  apiKeyInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      saveSettingsBtn.click();
+  // Add keyboard navigation for quiz buttons
+  document.addEventListener('keydown', (e) => {
+    if (!quizModal.classList.contains('hidden')) {
+      if (e.key === 'Enter') {
+        if (!submitQuizBtn.classList.contains('hidden') && !submitQuizBtn.disabled) {
+          submitQuizBtn.click();
+        } else if (!nextQuizBtn.classList.contains('hidden') && !nextQuizBtn.disabled) {
+          nextQuizBtn.click();
+        }
+      } else if (e.key === 'Escape') {
+        closeQuizBtn.click();
+      }
     }
   });
 
@@ -470,6 +535,65 @@ document.addEventListener('DOMContentLoaded', () => {
       quizGroupSelect.appendChild(option);
     });
   }
+
+  // Tab switching
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const tabName = button.dataset.tab;
+      
+      // Update active states
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      button.classList.add('active');
+      document.getElementById(`${tabName}Tab`).classList.add('active');
+
+      // Render translations if switching to translations tab
+      if (tabName === 'translations') {
+        renderTranslations();
+      }
+    });
+  });
+
+  // Render translations
+  function renderTranslations() {
+    translationsContainer.innerHTML = '';
+    const sortedVocab = [...vocabData].sort((a, b) => a.word.localeCompare(b.word));
+    
+    sortedVocab.forEach(({ word, arabic }) => {
+      const translationItem = document.createElement('div');
+      translationItem.className = 'translation-item';
+      translationItem.innerHTML = `
+        <span class="translation-word">${word}</span>
+        <span class="translation-arabic">${arabic.replace(/\*\*([^\*]+)\*\*/g, '$1')}</span>
+      `;
+      translationsContainer.appendChild(translationItem);
+    });
+  }
+
+  // Search translations
+  translationSearchInput.addEventListener('input', () => {
+    const query = translationSearchInput.value.trim().toLowerCase();
+    const filteredVocab = query
+      ? vocabData.filter(item =>
+          item.word.toLowerCase().includes(query) ||
+          item.arabic.toLowerCase().includes(query)
+        )
+      : vocabData;
+    
+    const sortedVocab = [...filteredVocab].sort((a, b) => a.word.localeCompare(b.word));
+    translationsContainer.innerHTML = '';
+    
+    sortedVocab.forEach(({ word, arabic }) => {
+      const translationItem = document.createElement('div');
+      translationItem.className = 'translation-item';
+      translationItem.innerHTML = `
+        <span class="translation-word">${word}</span>
+        <span class="translation-arabic">${arabic.replace(/\*\*([^\*]+)\*\*/g, '$1')}</span>
+      `;
+      translationsContainer.appendChild(translationItem);
+    });
+  });
 
   // Initial load
   loadVocab();
